@@ -115,6 +115,7 @@ Model.prototype._fetchSingleResult = function(result, options) {
 		}
 		else {
 			if (!_.contains(options.populate, key)) {
+				// TODO: Always include ID in the WS response, and use it here.
 				object[key] = null;
 				return;
 			}

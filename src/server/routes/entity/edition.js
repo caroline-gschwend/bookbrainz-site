@@ -24,6 +24,7 @@ var router = express.Router();
 var auth = require('../../helpers/auth');
 var Edition = require('../../data/entities/edition');
 var User = require('../../data/user');
+var _ = require('underscore');
 
 var React = require('react');
 var EditForm = React.createFactory(require('../../../client/components/forms/edition.jsx'));
@@ -39,6 +40,49 @@ var loadIdentifierTypes = require('../../helpers/middleware').loadIdentifierType
 var bbws = require('../../helpers/bbws');
 var Promise = require('bluebird');
 
+function getConflictingFields(editions) {
+	var commonFields = {
+		publication: null,
+		creator_credit: null,
+		edition_format: null,
+		edition_status: null,
+		publisher: null,
+		language: null,
+		release_date: null
+	};
+
+	console.log('DUMP');
+	console.log(editions[0]);
+
+	console.log(_.uniq(_.compact(editions.map(function(edition) {
+		return edition.publication ? edition.publication.bbid : null;
+	}))));
+
+	console.log(_.uniq(_.compact(editions.map(function(edition) {
+		return edition.creator_credit ? edition.creator_credit.creator_credit_id : null;
+	}))));
+
+	console.log(_.uniq(_.compact(editions.map(function(edition) {
+		return edition.edition_format ? edition.edition_format.edition_format_id : null;
+	}))));
+
+	console.log(_.uniq(_.compact(editions.map(function(edition) {
+		return edition.edition_status ? edition.edition_status.edition_status_id : null;
+	}))));
+
+	console.log(_.uniq(_.compact(editions.map(function(edition) {
+		return edition.publisher ? edition.publisher.bbid : null;
+	}))));
+
+	console.log(_.uniq(_.compact(editions.map(function(edition) {
+		return edition.language ? edition.language.id : null;
+	}))));
+
+	console.log(_.uniq(_.compact(editions.map(function(edition) {
+		return edition.release_date ? edition.edition_status.release_date : null;
+	}))));
+}
+
 /* If the route specifies a BBID, load the Edition for it. */
 router.param('bbid', makeEntityLoader(Edition, 'Edition not found'));
 
@@ -50,8 +94,20 @@ router.get('/:bbid', loadEntityRelationships, function(req, res) {
 		title = 'Edition “' + edition.default_alias.name + '”';
 	}
 
+	var mergeLevel = 1; // This entity can be merged
+	if(req.session.mergeEntities &&
+		 _.contains(req.session.mergeEntities, edition.bbid)) {
+		if (req.session.mergeEntities.length > 1) {
+			mergeLevel = 2; // Merge can be completed
+		}
+		else {
+			mergeLevel = 0; // Merge cannot be completed
+		}
+	}
+
 	res.render('entity/view/edition', {
-		title: title
+		title: title,
+		mergeLevel: mergeLevel
 	});
 });
 
@@ -93,6 +149,54 @@ router.get('/:bbid/delete', auth.isAuthenticated, function(req, res) {
 	res.render('entity/delete', {
 		title: title
 	});
+});
+
+router.get('/:bbid/merge/select', auth.isAuthenticated, function(req, res) {
+	var entity = res.locals.entity;
+
+	// Store this entity bbid in the session
+	if (req.session.mergeEntities) {
+		req.session.mergeEntities.push(entity.bbid);
+	}
+	else {
+		req.session.mergeEntities = [entity.bbid];
+	}
+
+	res.redirect('/edition/' + entity.bbid);
+});
+
+router.get('/:bbid/merge/remove', auth.isAuthenticated, function(req, res) {
+	var entity = res.locals.entity;
+
+	// Remove the entity from the merge
+	req.session.mergeEntities = _.without(req.session.mergeEntities, entity.bbid);
+
+	res.redirect('/edition/' + entity.bbid);
+});
+
+router.get('/:bbid/merge/cancel', auth.isAuthenticated, function(req, res) {
+	var entity = res.locals.entity;
+
+	// Cancel the merge
+	req.session.mergeEntities = null;
+
+	res.redirect('/edition/' + entity.bbid);
+});
+
+
+router.get('/:bbid/merge', auth.isAuthenticated, function(req, res) {
+	var editionsPromises = req.session.mergeEntities.map(function(entity) {
+		return Edition.findOne(entity, {populate: ['publication', 'publisher']});
+	});
+
+	Promise.all(editionsPromises).then(function(editions) {
+		console.log("SORTING FIELDS!");
+		getConflictingFields(editions);
+	});
+
+	//res.render('entity/delete', {
+	//	title: title
+	//});
 });
 
 router.post('/:bbid/delete/confirm', function(req, res) {
