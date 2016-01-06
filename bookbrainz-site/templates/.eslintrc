@@ -1,0 +1,7 @@
+---
+rules:
+  strict:
+    - 2
+    - function
+env:
+  browser: true

@@ -1,0 +1,46 @@
+extends ./entity
+
+block icon
+	span.fa.fa-book
+
+block picture
+	span.fa.fa-book.picture-fallback-icon-large
+
+block attributes
+	dt Status
+	dd=(entity.edition_status ? entity.edition_status.label : '?')
+
+	dt Format
+	dd=(entity.edition_format ? entity.edition_format.label : '?')
+
+	dt Language
+	dd=(entity.language ? entity.language.name : '?')
+
+	dt Publisher
+	dd
+		if entity.publisher
+			a(href="/publisher/"+entity.publisher.bbid)
+				=entity.publisher.default_alias.name
+		else
+			|?
+
+	dt Release Date
+	dd=(entity.release_date ? entity.release_date : '?')
+	
+	dt Page Count
+	dd=(entity.pages ? entity.pages : '?')
+	
+	dt Weight
+	dd=(entity.weight ? entity.weight : '?') + ' g'
+	
+	dt Dimensions (W×H×D)
+	dd=(entity.width ? entity.width : '?') + '×' + (entity.height ? entity.height : '?') + '×' + (entity.depth ? entity.depth : '?') + ' mm'
+
+block content
+	p
+		if entity.publication
+			a(href="/publication/"+entity.publication.bbid)
+				span.fa.fa-external-link
+				|&nbsp;See all other editions
+		else
+			span.bg-danger Publication unset - please add one if you see this!

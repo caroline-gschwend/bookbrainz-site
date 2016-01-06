@@ -1,0 +1,15 @@
+extends ./entity
+
+block icon
+	span.fa.fa-user
+
+block picture
+	span.fa.fa-user.picture-fallback-icon-large
+
+block attributes
+	+type(entity.creator_type)
+
+	dt Gender
+	dd=(entity.gender ? entity.gender.name : '?')
+
+	+begin_end
